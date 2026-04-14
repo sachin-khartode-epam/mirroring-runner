@@ -46,4 +46,3 @@ jobs:
           git remote add origin \
             https://github.com/${{ inputs.target_account }}/${REPO_NAME}.git
           git push -u origin "${{ inputs.branch_name }}"
-``
