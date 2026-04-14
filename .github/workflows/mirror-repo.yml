@@ -61,9 +61,11 @@ jobs:
 
       # ✅ STEP 6: Push to target repo
       - name: Push to target repo
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
         run: |
           cd source-repo
           git remote remove origin
           git remote add origin \
-            https://github.com/${{ inputs.target_account }}/${REPO_NAME}.git
+            https://x-access-token:${GH_TOKEN}@github.com/${{ inputs.target_account }}/${REPO_NAME}.git
           git push -u origin "${{ inputs.branch_name }}"
