@@ -16,30 +16,51 @@ on:
 jobs:
   mirror:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Set Repo Name
+      # ✅ STEP 1: Validate inputs (fail fast)
+      - name: Validate required inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${SOURCE_REPOSITORY_URL:?Missing required input: source_repository_url}"
+          : "${TARGET_ACCOUNT:?Missing required input: target_account}"
+          : "${BRANCH_NAME:?Missing required input: branch_name}"
+        env:
+          SOURCE_REPOSITORY_URL: ${{ inputs.source_repository_url }}
+          TARGET_ACCOUNT: ${{ inputs.target_account }}
+          BRANCH_NAME: ${{ inputs.branch_name }}
+
+      # ✅ STEP 2: Setup GitHub CLI auth
+      - name: Authenticate GitHub CLI
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
+        run: gh auth status
+
+      # ✅ STEP 3: Extract repo name
+      - name: Extract repository name
         run: |
           REPO_NAME=$(basename -s .git "${{ inputs.source_repository_url }}")
           echo "REPO_NAME=$REPO_NAME" >> $GITHUB_ENV
 
-      - name: Create Target Repo if Missing
+      # ✅ STEP 4: Create target repo if missing
+      - name: Create target repo if missing
         env:
           GH_TOKEN: ${{ secrets.PAT }}
         run: |
-          gh repo view \
-            ${{ inputs.target_account }}/${REPO_NAME} \
-            || gh repo create \
-            ${{ inputs.target_account }}/${REPO_NAME} \
-            --public --confirm
+          gh repo view ${{ inputs.target_account }}/${REPO_NAME} \
+          || gh repo create ${{ inputs.target_account }}/${REPO_NAME} --public --confirm
 
-      - name: Clone Source Repository
+      # ✅ STEP 5: Clone source repo
+      - name: Clone source repo
         run: |
           git clone \
             --branch "${{ inputs.branch_name }}" \
             --single-branch \
             "${{ inputs.source_repository_url }}" source-repo
 
-      - name: Push to Target Repository
+      # ✅ STEP 6: Push to target repo
+      - name: Push to target repo
         run: |
           cd source-repo
           git remote remove origin
