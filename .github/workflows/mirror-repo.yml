@@ -1,0 +1,49 @@
+name: Mirror Git Repository
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_repository_url:
+        required: true
+        type: string
+      target_account:
+        required: true
+        type: string
+      branch_name:
+        required: true
+        type: string
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set Repo Name
+        run: |
+          REPO_NAME=$(basename -s .git "${{ inputs.source_repository_url }}")
+          echo "REPO_NAME=$REPO_NAME" >> $GITHUB_ENV
+
+      - name: Create Target Repo if Missing
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
+        run: |
+          gh repo view \
+            ${{ inputs.target_account }}/${REPO_NAME} \
+            || gh repo create \
+            ${{ inputs.target_account }}/${REPO_NAME} \
+            --public --confirm
+
+      - name: Clone Source Repository
+        run: |
+          git clone \
+            --branch "${{ inputs.branch_name }}" \
+            --single-branch \
+            "${{ inputs.source_repository_url }}" source-repo
+
+      - name: Push to Target Repository
+        run: |
+          cd source-repo
+          git remote remove origin
+          git remote add origin \
+            https://github.com/${{ inputs.target_account }}/${REPO_NAME}.git
+          git push -u origin "${{ inputs.branch_name }}"
+``
